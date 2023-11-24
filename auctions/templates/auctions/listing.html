@@ -1,5 +1,5 @@
 {% extends "auctions/layout.html" %}
-
+{% load static %}
 {% block title %}
     Auction - {{ auction.title }}
 {% endblock %}
@@ -27,7 +27,7 @@
                     <div class="col-md-2">
                         <div>Status:</div>
                         <div>
-                            <strong> 
+                            <strong>
                             {% if auction.closed %}
                                 Closed
                             {% else %}
@@ -43,18 +43,18 @@
                         <form action="{% url 'close' auction.id %}" method="post">
                             {% csrf_token %}
 
-                            <div class="form group py-3">  
+                            <div class="form group py-3">
                                 <button type="submit" class="btn btn-primary btn-sm" style="width: 120px">Close listing</button>
                             </div>
-                        </form> 
-                        {% endif %}  
+                        </form>
+                        {% endif %}
                     </div>
                 </div>
-                    
+
                 <div>Description:</div>
                 <div><p>{{ auction.description }}</p></div>
                 <div>Current price:</div>
-                <div><p><strong style="font-size: 30px">US $ {{ auction.current_bid }}</strong></p></div>
+                <div id="current-bid"><p><strong style="font-size: 30px">US $ {{ auction.current_bid }}</strong></p></div>
                 <div>Starting bid:</div>
                 <div><p>US $ {{ auction.starting_bid }}</p></div>
                 <div>Seller:</div>
@@ -63,7 +63,7 @@
                 <div><p><small>{{ auction.creation_date }}</small></p></div>
                 <div>Updated on:</div>
                 <div><p><small>{{ auction.update_date }}</small></p></div>
-                <span class="form-text text-muted">{{ bid_Num }} Bid(s) so far.</span>  
+                <span class="form-text text-muted">{{ bid_Num }} Bid(s) so far.</span>
 
                 {% if not auction.closed  %}
                 <div class="container" id="button_group">
@@ -78,13 +78,13 @@
                                     <label><strong>{{ field.label }}:</strong></label>
                                     <div>{{ field }}</div>
                                     <small>
-                                        <span class="form-text text-muted">Please place your bid higher than the current price.</span>  
+                                        <span class="form-text text-muted">Please place your bid higher than the current price.</span>
                                     </small>
                                 </div>
                                 {% endfor %}
 
                                 <button type="submit" id="bid_button" class="btn btn-primary" style="width: 150px">Bid</button>
-                            </form> 
+                            </form>
                         </div>
 
                         <div class="col-4">
@@ -92,18 +92,18 @@
                             {% if user.is_authenticated %}
                                 {% if not watching %}
                                 <form action="{% url 'addWatchlist' auction.id %}" method="post">
-                                    {% csrf_token %} 
+                                    {% csrf_token %}
                                     <button type="submit" id="watchlist_button" class="btn btn-outline-primary" style="width: 150px">Add to Watchlist</button>
                                 </form>
                                 {% else %}
                                 <form action="{% url 'removeWatchlist' auction.id %}" method="post">
-                                    {% csrf_token %} 
+                                    {% csrf_token %}
                                     <button type="submit" id="watchlist_button2" class="btn btn-outline-primary" style="width: 200px">Remove from Watchlist</button>
                                 </form>
                                 {% endif %}
                             {% endif %}
                         </div>
-                    </div> 
+                    </div>
                 </div>
 
                 {% else %}
@@ -115,8 +115,8 @@
                         {% endif %}
                     {% else %}
                         <p>No bid winner.</p>
-                    {% endif %}   
-                {% endif %}  
+                    {% endif %}
+                {% endif %}
             </div>
         </div>
     </div>
@@ -128,7 +128,7 @@
     <div class="container my-5" id="comment_block">
     <h4>Leave your comment</h4>
     <form action="{% url 'comment' auction.id %}" method="post">
-        {% csrf_token %} 
+        {% csrf_token %}
 
         <div class="row">
             <div class="col">
@@ -145,12 +145,12 @@
         </div>
 
         <div class="row">
-            <div class="col"> 
+            <div class="col">
                 <button type="submit" id="comment_button" class="btn btn-primary" style="width: 120px">Submit</button>
-            </div>          
+            </div>
         </div>
     </form>
-    
+
     </div>
     {% endif %}
 
@@ -161,27 +161,39 @@
 
         {% for comment in comments %}
         <div class="card bg-light mb-3">
-           
+
             <div class="card-header">
                 <strong>{{ comment.user.username }} </strong>
                 <div class="text-muted small">
                     commented on {{ comment.cm_date }}
-                </div>       
+                </div>
             </div>
             <div class="card-body">
               <h5 class="card-title">{{ comment.headline }}</h5>
               <p class="card-text"> {{ comment.message }}</p>
             </div>
-            
+
         </div>
         {% endfor %}
 
         {% else %}
         <p>No comments so far.</p>
         {% endif %}
-        
+       <script type="text/javascript">
+    console.log("Test script execution");
+</script>
+
     </div>
 
-    
+<!-- WebSocket JavaScript Logic -->
+<!-- Include the separated JavaScript file -->
+<script src="{% static 'websocket_logic.js' %}"></script>
+    <script type="text/javascript">
+        document.addEventListener('DOMContentLoaded', function() {
+            // Pass the auction ID to the external JavaScript function
+            setupWebSocket({{ auction.id }});
+        });
+    </script>
+
 
 {% endblock %}

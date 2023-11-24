@@ -1,5 +1,10 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+import json
 
 
 class User(AbstractUser):
@@ -72,3 +77,24 @@ class Watchlist(models.Model):
     def __str__(self):
         return f"{self.user}'s watchlist"
 
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from .models import Bid
+import json
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+
+@receiver(post_save, sender=Bid)
+def bid_post_save(sender, instance, created, **kwargs):
+    if created:
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f'auction_{instance.auction.id}',
+            {
+                'type': 'auction_message',
+                'message': json.dumps({
+                    'bid': str(instance.bid_price),  # Convert Decimal to string
+                    'user': instance.bider.username
+                })
+            }
+        )
