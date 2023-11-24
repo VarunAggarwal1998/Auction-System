@@ -1,1 +1,2 @@
-web: uvicorn your_project_name.asgi:application --port $PORT
+web: uvicorn commerce.asgi:application --port $PORT
+
