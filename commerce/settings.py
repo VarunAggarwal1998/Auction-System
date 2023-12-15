@@ -43,7 +43,7 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'varunaggarwal313@gmail.com'  # Use environment variable here
-EMAIL_HOST_PASSWORD = 'starvarun786'     # Use environment variable here
+EMAIL_HOST_PASSWORD = 'zrgaqzobiyabyhzb'     # Use environment variable here
 
 #EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
