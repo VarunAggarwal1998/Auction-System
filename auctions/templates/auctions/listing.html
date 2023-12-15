@@ -122,7 +122,31 @@
     </div>
 
     <hr id="listing_divider">
-
+<div class="container my-5" id="bid_history_block">
+        <h4>Bid History</h4>
+        {% if bid_history %}
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th scope="col">Bidder</th>
+                        <th scope="col">Bid Amount</th>
+                        <th scope="col">Bid Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bid in bid_history %}
+                        <tr>
+                            <td>{{ bid.bider.username }}</td>
+                            <td>US $ {{ bid.bid_price }}</td>
+                            <td>{{ bid.bid_date }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No bids have been placed yet.</p>
+        {% endif %}
+    </div>
     <!-- comment form -->
     {% if user.is_authenticated %}
     <div class="container my-5" id="comment_block">
