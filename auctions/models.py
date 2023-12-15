@@ -5,7 +5,9 @@ from django.dispatch import receiver
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 import json
-
+from django.core.mail import send_mail
+from django.conf import settings
+from django.conf import settings
 
 class User(AbstractUser):
     pass
@@ -98,3 +100,5 @@ def bid_post_save(sender, instance, created, **kwargs):
                 })
             }
         )
+
+

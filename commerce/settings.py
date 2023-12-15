@@ -37,8 +37,15 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['auction-cloud-varun-a02a5113a697.herokuapp.com', 'localhost', '127.0.0.1']
 
+#EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'varunaggarwal313@gmail.com'  # Use environment variable here
+EMAIL_HOST_PASSWORD = 'starvarun786'     # Use environment variable here
 
-
+#EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # Application definition
 

@@ -4,12 +4,24 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
 
+from commerce import settings
 from .models import User, Auction, Bid, Category, Comment, Watchlist
 from .forms import NewCommentForm, NewListingForm, NewBidForm
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist
 
+from django.core.mail import send_mail
+from django.contrib.auth.models import User
+from .models import User
+
+
+def send_bid_update_email(item_name, bid_amount):
+    subject = f'Update on the bid for {item_name}'
+    message = f'The current highest bid for {item_name} is now ${bid_amount}.'
+    email_from = settings.EMAIL_HOST_USER  # Use the email configured in settings
+    recipient_list = [user.email for user in User.objects.all() if user.email and user.email != 'sn02318@gmail.com']
+    send_mail(subject, message, email_from, recipient_list)
 
 def index(request):
     return render(request, "auctions/index.html", {
@@ -82,13 +94,13 @@ def category(request, category_id):
     try:
         # get a list of all active listing of the category
         auctions = Auction.objects.filter(category=category_id, closed=False).order_by('-creation_date')
-         
+
     except Auction.DoesNotExist:
         return render(request, "auctions/error.html", {
             "code": 404,
             "message": f"The category does not exist."
         })
-   
+
     try:
         # get the category
         category = Category.objects.get(pk=category_id)
@@ -105,7 +117,7 @@ def category(request, category_id):
     })
 
 
-@login_required(login_url="login") 
+@login_required(login_url="login")
 def watchlist(request):
     # check the existance of the user's watchlist
     try:
@@ -119,7 +131,6 @@ def watchlist(request):
         watchlist = None
         auctions = None
         watchingNum = 0
-    
 
     return render(request, "auctions/watchlist.html", {
         # return the listings in the watchlist
@@ -160,7 +171,7 @@ def create(request):
             return render(request, "auctions/create.html", {
                 "form": form
             })
-    
+
     # if the request method is GET
     else:
         form = NewListingForm()
@@ -169,11 +180,11 @@ def create(request):
         })
 
 
-def listing(request, auction_id):  
+def listing(request, auction_id):
     try:
         # get the auction listing by id
         auction = Auction.objects.get(pk=auction_id)
-        
+
     except Auction.DoesNotExist:
         return render(request, "auctions/error.html", {
             "code": 404,
@@ -182,13 +193,13 @@ def listing(request, auction_id):
 
     # set watching flag be False as default
     watching = False
-    # set the highest bidder is None as default    
+    # set the highest bidder is None as default
     highest_bidder = None
 
     # check if the auction in the watchlist
     if request.user.is_authenticated and Watchlist.objects.filter(user=request.user, auctions=auction):
         watching = True
-    
+
     # get the page request user
     user = request.user
 
@@ -200,7 +211,7 @@ def listing(request, auction_id):
 
     # get the highest bids of the aunction
     highest_bid = Bid.objects.filter(auction=auction_id).order_by("-bid_price").first()
-    
+
     # check the request method is POST
     if request.method == "GET":
         form = NewBidForm()
@@ -209,16 +220,16 @@ def listing(request, auction_id):
         # check if the auction listing is not closed
         if not auction.closed:
             return render(request, "auctions/listing.html", {
-            "auction": auction,
-            "form": form,
-            "user": user,
-            "bid_Num": bid_Num,
-            "commentForm": commentForm,
-            "comments": comments,
-            "watching": watching
-            }) 
+                "auction": auction,
+                "form": form,
+                "user": user,
+                "bid_Num": bid_Num,
+                "commentForm": commentForm,
+                "comments": comments,
+                "watching": watching
+            })
 
-        # the auction is closed
+            # the auction is closed
         else:
             # check the if there is bid for the auction listing
             if highest_bid is None:
@@ -239,32 +250,31 @@ def listing(request, auction_id):
                 # assign the highest_bidder
                 highest_bidder = highest_bid.bider
 
-                # check the request user if the bid winner    
+                # check the request user if the bid winner
                 if user == highest_bidder:
                     messages.info(request, 'Congratulation. You won the bid.')
                 else:
                     messages.info(request, f'The winner of the bid is {highest_bidder.username}')
 
                 return render(request, "auctions/listing.html", {
-                "auction": auction,
-                "form": form,
-                "user": user,
-                "highest_bidder": highest_bidder,
-                "bid_Num": bid_Num,
-                "commentForm": commentForm,
-                "comments": comments,
-                "watching": watching
+                    "auction": auction,
+                    "form": form,
+                    "user": user,
+                    "highest_bidder": highest_bidder,
+                    "bid_Num": bid_Num,
+                    "commentForm": commentForm,
+                    "comments": comments,
+                    "watching": watching
                 })
 
-    
+
     # listing itself does not support POST method
     else:
         return render(request, "auctions/error.html", {
             "code": 405,
             "message": "The POST method is not allowed."
         })
-        
-        
+
 
 @login_required(login_url="login")
 def close(request, auction_id):
@@ -290,28 +300,28 @@ def close(request, auction_id):
             # update and save the closed status
             auction.closed = True
             auction.save()
-            
+
             # pop up the message
             messages.success(request, 'The auction listing is closed sucessfully.')
             return HttpResponseRedirect(reverse("listing", args=(auction.id,)))
 
-    # close view not support GET method    
+    # close view not support GET method
     else:
         return render(request, "auctions/error.html", {
             "code": 405,
             "message": "The GET method is not allowed."
         })
-        
+
 
 @login_required(login_url="login")
-def bid(request, auction_id):  
+def bid(request, auction_id):
     # check to handle POST method only
     if request.method == "POST":
         # check the existence auction
         try:
             # get the auction listing by id
-            auction = Auction.objects.get(pk=auction_id)     
-            
+            auction = Auction.objects.get(pk=auction_id)
+
         except Auction.DoesNotExist:
             return render(request, "auctions/error.html", {
                 "code": 404,
@@ -333,9 +343,9 @@ def bid(request, auction_id):
         # check the auction if it is closed
         if auction.closed is True:
             messages.error(request, 'The auction listing is closed.')
-            return HttpResponseRedirect(reverse("listing", args=(auction.id,))) 
-        
-        # the auction list is active
+            return HttpResponseRedirect(reverse("listing", args=(auction.id,)))
+
+            # the auction list is active
         else:
             # check whether it's valid
             if form.is_valid():
@@ -355,25 +365,29 @@ def bid(request, auction_id):
                     # update and save the current price
                     auction.current_bid = bid_price
                     auction.save()
+                    # Call the email sending function here
+                    send_bid_update_email(auction.title, bid_price)
 
                     # return sucessful message
                     messages.success(request, 'Your Bid offer is made successfully.')
-
+                    return HttpResponseRedirect(reverse("listing", args=(auction.id,)))
                 # handle invalid bid offer
                 else:
-                    #if the bid is invalid, populate the msg
-                    messages.error(request, 'Please submit a valid bid offer. Your bid offer must be higher than the starting bid and current price.')
+                    # if the bid is invalid, populate the msg
+                    messages.error(request,
+                                   'Please submit a valid bid offer. Your bid offer must be higher than the starting bid and current price.')
 
-                # valid form, redirect the user to the listing page 
-                return HttpResponseRedirect(reverse("listing", args=(auction.id,)))    
+                # valid form, redirect the user to the listing page
+                return HttpResponseRedirect(reverse("listing", args=(auction.id,)))
 
             else:
                 # if the form is invalid, re-render the page with existing information
-                messages.error(request, 'Please submit a valid bid offer. Your bid offer must be higher than the starting bid and current price.')
+                messages.error(request,
+                               'Please submit a valid bid offer. Your bid offer must be higher than the starting bid and current price.')
 
                 # redirect the user to the listing page
                 return HttpResponseRedirect(reverse("listing", args=(auction.id,)))
-    
+
     # bid view do not support get method
     else:
         return render(request, "auctions/error.html", {
@@ -390,14 +404,14 @@ def comment(request, auction_id):
         # check the existence auction
         try:
             # get the auction listing by id
-            auction = Auction.objects.get(pk=auction_id)     
-            
+            auction = Auction.objects.get(pk=auction_id)
+
         except Auction.DoesNotExist:
             return render(request, "auctions/error.html", {
                 "code": 404,
                 "message": "The auction does not exist."
             })
-            
+
         # create a form instance with POST data
         form = NewCommentForm(request.POST, request.FILES)
 
@@ -415,12 +429,12 @@ def comment(request, auction_id):
             messages.success(request, 'Your comment is received sucessfully.')
 
             return HttpResponseRedirect(reverse("listing", args=(auction.id,)))
-        
+
         # handle invalid comment form
         else:
             # if the form is invalid
             messages.error(request, 'Please submit a valid comment.')
-     
+
     # comment view do not support get method
     else:
         return render(request, "auctions/error.html", {
@@ -430,14 +444,14 @@ def comment(request, auction_id):
 
 
 @login_required(login_url="login")
-def addWatchlist(request, auction_id):   
+def addWatchlist(request, auction_id):
     # check to handle POST method only
     if request.method == "POST":
         # check the existence auction
         try:
             # get the auction listing by id
-            auction = Auction.objects.get(pk=auction_id)     
-            
+            auction = Auction.objects.get(pk=auction_id)
+
         except Auction.DoesNotExist:
             return render(request, "auctions/error.html", {
                 "code": 404,
@@ -451,7 +465,7 @@ def addWatchlist(request, auction_id):
         except ObjectDoesNotExist:
             # if no watchlist, create an watchlist object for the user
             watchlist = Watchlist.objects.create(user=request.user)
-        
+
         # check if the item exists in the user's watchlist
         if Watchlist.objects.filter(user=request.user, auctions=auction):
             messages.error(request, 'You already added in your watchlist')
@@ -459,13 +473,13 @@ def addWatchlist(request, auction_id):
 
         # if the item is not in the watchlist
         watchlist.auctions.add(auction)
-            
+
         # return sucessful message
         messages.success(request, 'The listing is added to your Watchlist.')
 
         return HttpResponseRedirect(reverse("listing", args=(auction.id,)))
-        
-     
+
+
     # addWatchlist view do not support get method
     else:
         return render(request, "auctions/error.html", {
@@ -475,47 +489,46 @@ def addWatchlist(request, auction_id):
 
 
 @login_required(login_url="login")
-def removeWatchlist(request, auction_id):   
+def removeWatchlist(request, auction_id):
     # check to handle POST method only
     if request.method == "POST":
         # check the existence auction
         try:
             # get the auction listing by id
-            auction = Auction.objects.get(pk=auction_id)     
-            
+            auction = Auction.objects.get(pk=auction_id)
+
         except Auction.DoesNotExist:
             return render(request, "auctions/error.html", {
                 "code": 404,
                 "message": "The auction does not exist."
             })
-        
+
         # check if the item exists in the user's watchlist
         if Watchlist.objects.filter(user=request.user, auctions=auction):
             # get the user's watchlist
             watchlist = Watchlist.objects.get(user=request.user)
-           
+
             # delete the auction from the users watchlist
             watchlist.auctions.remove(auction)
-                
+
             # return sucessful message
             messages.success(request, 'The listing is removed from your watchlist.')
 
             return HttpResponseRedirect(reverse("listing", args=(auction.id,)))
-        
+
         else:
             # return error message
             messages.success(request, 'You cannot remove the listing not in your watchlist.')
 
             return HttpResponseRedirect(reverse("listing", args=(auction.id,)))
-   
-     
+
+
     # removeWatchlist view do not support get method
     else:
         return render(request, "auctions/error.html", {
             "code": 405,
             "message": "The GET method is not allowed."
         })
-
 
 
 
