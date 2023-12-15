@@ -23,6 +23,19 @@ def send_bid_update_email(item_name, bid_amount):
     recipient_list = [user.email for user in User.objects.all() if user.email and user.email != 'sn02318@gmail.com']
     send_mail(subject, message, email_from, recipient_list)
 
+def send_auction_closure_email(item_name, winner=None, bid_amount=None):
+    if winner:
+        subject = f'Auction Closed for {item_name}'
+        message = f'The auction for {item_name} has closed. The winning bid was ${bid_amount} by {winner.username}.'
+    else:
+        subject = f'Auction Closed for {item_name}'
+        message = f'The auction for {item_name} has closed with no winning bids.'
+
+    email_from = settings.EMAIL_HOST_USER  # Use the email configured in settings
+    recipient_list = [user.email for user in User.objects.all() if user.email and user.email != 'sn02318@gmail.com']
+    send_mail(subject, message, email_from, recipient_list)
+
+
 def index(request):
     return render(request, "auctions/index.html", {
         "auctions": Auction.objects.filter(closed=False).order_by('-creation_date')
@@ -276,6 +289,42 @@ def listing(request, auction_id):
         })
 
 
+# @login_required(login_url="login")
+# def close(request, auction_id):
+#     # check to handle POST method only
+#     if request.method == "POST":
+#         # check the existence auction
+#         try:
+#             # get the auction listing by id
+#             auction = Auction.objects.get(pk=auction_id)
+#
+#         except Auction.DoesNotExist:
+#             return render(request, "auctions/error.html", {
+#                 "code": 404,
+#                 "message": "The auction does not exist."
+#             })
+#
+#         # check whether the request user who create the listing
+#         if request.user != auction.seller:
+#             messages.error(request, 'The request is not allowed.')
+#             return HttpResponseRedirect(reverse("listing", args=(auction.id,)))
+#
+#         else:
+#             # update and save the closed status
+#             auction.closed = True
+#             auction.save()
+#
+#             # pop up the message
+#             messages.success(request, 'The auction listing is closed sucessfully.')
+#             return HttpResponseRedirect(reverse("listing", args=(auction.id,)))
+#
+#     # close view not support GET method
+#     else:
+#         return render(request, "auctions/error.html", {
+#             "code": 405,
+#             "message": "The GET method is not allowed."
+#         })
+
 @login_required(login_url="login")
 def close(request, auction_id):
     # check to handle POST method only
@@ -301,8 +350,21 @@ def close(request, auction_id):
             auction.closed = True
             auction.save()
 
+            # After closing the auction, find the highest bid and the winner
+            highest_bid = Bid.objects.filter(auction=auction_id).order_by("-bid_price").first()
+            if highest_bid:
+                # Send email notification about auction closure and the winner
+                send_auction_closure_email(auction.title, winner=highest_bid.bider, bid_amount=highest_bid.bid_price)
+            else:
+                # Send email notification about auction closure without a winner
+                send_auction_closure_email(auction.title)
+
             # pop up the message
-            messages.success(request, 'The auction listing is closed sucessfully.')
+            messages.success(request, 'The auction listing is closed successfully.')
+            return HttpResponseRedirect(reverse("listing", args=(auction.id,)))
+
+            # pop up the message
+            messages.success(request, 'The auction listing is closed successfully.')
             return HttpResponseRedirect(reverse("listing", args=(auction.id,)))
 
     # close view not support GET method
@@ -311,7 +373,6 @@ def close(request, auction_id):
             "code": 405,
             "message": "The GET method is not allowed."
         })
-
 
 @login_required(login_url="login")
 def bid(request, auction_id):
