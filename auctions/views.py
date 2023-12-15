@@ -325,6 +325,12 @@ def listing(request, auction_id):
 #             "message": "The GET method is not allowed."
 #         })
 
+def closed_listings(request):
+    closed_auctions = Auction.objects.filter(closed=True).order_by('-creation_date')
+    return render(request, "auctions/closed_listings.html", {
+        "closed_auctions": closed_auctions
+    })
+
 @login_required(login_url="login")
 def close(request, auction_id):
     # check to handle POST method only
