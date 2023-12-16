@@ -8,6 +8,9 @@ import json
 from django.core.mail import send_mail
 from django.conf import settings
 from django.conf import settings
+from django.db import models
+from datetime import timedelta
+from django.utils import timezone
 
 class User(AbstractUser):
     pass
@@ -40,13 +43,15 @@ class Auction(models.Model):
     creation_date = models.DateTimeField(auto_now_add=True)
     update_date = models.DateTimeField(auto_now=True, null=True)
     # lastBid = models.ForeignKey(Bid, on_delete=models.CASCADE, blank=True, null=True) 
-
+    end_time = models.DateTimeField(null=True, blank=True)
     def __str__(self):
         return f"Auction id: {self.id} | Title: {self.title} | Seller: {self.seller} | Closed: {self.closed}"
     
     def get_fields(self):
         return [(field.name, getattr(self, field.name)) for field in Auction._meta.fields]
 
+    def is_active(self):
+        return timezone.now() < self.end_time if self.end_time else False
 
 # define the model of a bid
 class Bid(models.Model):

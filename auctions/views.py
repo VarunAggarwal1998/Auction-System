@@ -1,9 +1,11 @@
+from datetime import timedelta
+
 from django.contrib.auth import authenticate, login, logout
 from django.db import IntegrityError
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
-
+from django.utils import timezone
 from commerce import settings
 from .models import User, Auction, Bid, Category, Comment, Watchlist
 from .forms import NewCommentForm, NewListingForm, NewBidForm
@@ -152,51 +154,45 @@ def watchlist(request):
         "watchingNum": watchingNum
     })
 
-
 @login_required(login_url="login")
 def create(request):
-    # check the request method is POST
     if request.method == "POST":
-        # create a form instance with POST data
         form = NewListingForm(request.POST, request.FILES)
-
-        # check whether it's valid
         if form.is_valid():
-            # save the form from data to model
             new_listing = form.save(commit=False)
-            # save the request user as seller
             new_listing.seller = request.user
-            # save the starting bid as current price
             new_listing.current_bid = form.cleaned_data['starting_bid']
+
+            # Handle duration fields
+            duration_hours = form.cleaned_data.get('duration_hours', 0)
+            duration_minutes = form.cleaned_data.get('duration_minutes', 0)
+
+            # Debugging: Print the duration values
+            print("Duration Hours:", duration_hours)
+            print("Duration Minutes:", duration_minutes)
+
+            new_listing.end_time = timezone.now() + timedelta(hours=duration_hours, minutes=duration_minutes)
+
             new_listing.save()
-
-            # return sucessful message
             messages.success(request, 'Create the auction listing successfully.')
-
-            # redirect the user to the index page
             return HttpResponseRedirect(reverse("index"))
-
         else:
-            form = NewListingForm()
-
-            # if the form is invalid, re-render the page with existing information
-            messages.error(request, 'The form is invalid. Please resumbit.')
-            return render(request, "auctions/create.html", {
-                "form": form
-            })
-
-    # if the request method is GET
+            messages.error(request, 'The form is invalid. Please resubmit.')
+            return render(request, "auctions/create.html", {"form": form})
     else:
         form = NewListingForm()
-        return render(request, "auctions/create.html", {
-            "form": form
-        })
-
+        return render(request, "auctions/create.html", {"form": form})
 
 def listing(request, auction_id):
     try:
         # get the auction listing by id
         auction = Auction.objects.get(pk=auction_id)
+        # Check if the auction's end time has passed and it's not already closed
+        if auction.end_time <= timezone.now() and not auction.closed:
+            auction.closed = True
+            auction.save()
+            messages.info(request, 'This auction has ended.')
+
     except Auction.DoesNotExist:
         return render(request, "auctions/error.html", {
             "code": 404,
