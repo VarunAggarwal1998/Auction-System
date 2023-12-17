@@ -69,26 +69,28 @@
     <div id="timer">Time left: <span id="time-left"></span></div>
 
     <script>
-        function updateTimer() {
-            var endTime = new Date("{{ auction.end_time|date:'Y-m-d H:i:s' }}").getTime();
-            var now = new Date().getTime();
-            var distance = endTime - now;
+function updateTimer() {
+    var endTime = new Date("{{ auction.end_time|date:'Y-m-d H:i:s' }}").getTime();
+    var now = new Date().getTime();
+    var distance = endTime - now;
 
-            if (distance < 0) {
-                clearInterval(timer);
-                document.getElementById("timer").innerHTML = "EXPIRED";
-                return;
-            }
+    if (distance < 0) {
+        clearInterval(timer);
+        document.getElementById("timer").innerHTML = "EXPIRED";
+        return;
+    }
 
-            var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-            var seconds = Math.floor((distance % (1000 * 60)) / 1000);
+    var days = Math.floor(distance / (1000 * 60 * 60 * 24));
+    var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+    var seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
-            document.getElementById("time-left").innerHTML = hours + "h " + minutes + "m " + seconds + "s ";
-        }
+    document.getElementById("time-left").innerHTML = days + "d " + hours + "h " + minutes + "m " + seconds + "s ";
+}
 
-        var timer = setInterval(updateTimer, 1000);
-        updateTimer();
+var timer = setInterval(updateTimer, 1000);
+updateTimer();
+
     </script>
 {% else %}
     <div>Auction has ended.</div>
