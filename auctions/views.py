@@ -600,6 +600,11 @@ def close_expired_auctions():
         # Optionally, add a log or a message indicating the auction has been closed
         print(f"Auction {auction.title} has been closed.")
 
+from django.http import JsonResponse
+
+def close_expired_auctions_view(request):
+    close_expired_auctions()
+    return JsonResponse({"status": "success"})
 
 
 
