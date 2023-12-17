@@ -579,6 +579,27 @@ def removeWatchlist(request, auction_id):
 
 
 
+def close_expired_auctions():
+    # Get all auctions that are still active but whose end time has passed
+    expired_auctions = Auction.objects.filter(closed=False, end_time__lt=timezone.now())
+
+    for auction in expired_auctions:
+        # Close the auction
+        auction.closed = True
+        auction.save()
+
+        # Find the highest bid for the auction
+        highest_bid = Bid.objects.filter(auction=auction).order_by("-bid_price").first()
+        if highest_bid:
+            # Send email notification about auction closure and the winner
+            send_auction_closure_email(auction.title, winner=highest_bid.bider, bid_amount=highest_bid.bid_price)
+        else:
+            # Send email notification about auction closure without a winner
+            send_auction_closure_email(auction.title)
+
+        # Optionally, add a log or a message indicating the auction has been closed
+        print(f"Auction {auction.title} has been closed.")
+
 
 
 
