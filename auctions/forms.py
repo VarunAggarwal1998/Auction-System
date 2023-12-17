@@ -4,7 +4,7 @@ from .models import Auction, Bid, Comment
 
 # create a new auction listing model form class
 class NewListingForm(ModelForm):
-    duration_hours = IntegerField(min_value=0, max_value=500, required=False, help_text="Duration in hours", widget=forms.NumberInput(attrs={'class': 'form-control'}))
+    duration_hours = IntegerField(min_value=0, max_value=23, required=False, help_text="Duration in hours", widget=forms.NumberInput(attrs={'class': 'form-control'}))
     duration_minutes = IntegerField(min_value=0, max_value=59, required=False, help_text="Duration in minutes", widget=forms.NumberInput(attrs={'class': 'form-control'}))
 
     class Meta:
